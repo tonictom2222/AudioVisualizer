@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="AudioAnalyzer/AudioAnalyzer.csproj" />
+  <Project Path="DEBUG/DEBUG.csproj" Id="989bb76e-0eac-4c6c-b345-3b16a6ea7f06" />
+  <Project Path="Visualizer/Visualizer.csproj" />
+</Solution>
