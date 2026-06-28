@@ -16,8 +16,8 @@
         <DockPanel x:Name="DockPanelEl" Background="Black">
             <!--<TextBlock DockPanel.Dock="Top" Text="{Binding Path=time, Mode=TwoWay}"></TextBlock>-->
             <Grid DockPanel.Dock="Top">
-                <TextBlock x:Name="TIMER" Foreground="White" VerticalAlignment="Center"></TextBlock>
-                <TextBlock x:Name="DebugText" Foreground="White"></TextBlock>
+                <TextBlock x:Name="TIMER" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"></TextBlock>
+                <TextBlock x:Name="DebugText" Foreground="White" HorizontalAlignment="Center"></TextBlock>
                 <Rectangle x:Name="AlertDot" Fill="Red" Width="20" Height="20" Margin="10" HorizontalAlignment="Right" VerticalAlignment="Center"></Rectangle>
                 <!--<TextBox Width="100" Text="{Binding Source=Magnification}"></TextBox>-->
             </Grid>           

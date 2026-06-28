@@ -1,6 +1,6 @@
 ﻿using NAudio.Dsp;
-using NAudio.Wave;
 using NAudio.MediaFoundation;
+using NAudio.Wave;
 using System;
 
 namespace AudioVisualizer.AudioAnalyzerV3Chatgpt
@@ -13,9 +13,10 @@ namespace AudioVisualizer.AudioAnalyzerV3Chatgpt
 
         public WaveFormat DesiredFormat { get; private set; }
 
-        public bool AnalyzerRunning = false;
+        public bool AnalyzerRunning { get; private set; }
 
-        public float[] CircularFloatBuffer = new float[4096];
+        public float[] CircularFloatBuffer = new float[4096 * 2];
+
         public int AmountOfBins = 30;
 
         private volatile int _writeHead;
@@ -37,13 +38,14 @@ namespace AudioVisualizer.AudioAnalyzerV3Chatgpt
                 ReadFully = false
             };
 
-            _resampler = new MediaFoundationResampler(_bufferedWaveProvider, DesiredFormat)
+            _resampler = new MediaFoundationResampler(
+                _bufferedWaveProvider,
+                DesiredFormat)
             {
                 ResamplerQuality = 60
             };
 
             _capture.DataAvailable += OnDataAvailable;
-
             _capture.StartRecording();
 
             AnalyzerRunning = true;
@@ -60,18 +62,29 @@ namespace AudioVisualizer.AudioAnalyzerV3Chatgpt
             _capture.Dispose();
             _resampler.Dispose();
 
+            _capture = null;
+            _resampler = null;
+            _bufferedWaveProvider = null;
+
             AnalyzerRunning = false;
         }
 
         private void OnDataAvailable(object sender, WaveInEventArgs e)
         {
-            _bufferedWaveProvider.AddSamples(e.Buffer, 0, e.BytesRecorded);
+            _bufferedWaveProvider.AddSamples(
+                e.Buffer,
+                0,
+                e.BytesRecorded);
 
             byte[] resampledBytes = new byte[16384];
 
             int bytesRead;
 
-            while ((bytesRead = _resampler.Read(resampledBytes, 0, resampledBytes.Length)) > 0)
+            while ((bytesRead =
+                _resampler.Read(
+                    resampledBytes,
+                    0,
+                    resampledBytes.Length)) > 0)
             {
                 int sampleCount = bytesRead / 4;
 
@@ -79,7 +92,10 @@ namespace AudioVisualizer.AudioAnalyzerV3Chatgpt
                 {
                     for (int i = 0; i < sampleCount; i++)
                     {
-                        float sample = BitConverter.ToSingle(resampledBytes, i * 4);
+                        float sample =
+                            BitConverter.ToSingle(
+                                resampledBytes,
+                                i * 4);
 
                         CircularFloatBuffer[_writeHead] = sample;
 
@@ -94,58 +110,106 @@ namespace AudioVisualizer.AudioAnalyzerV3Chatgpt
 
         public float[] FFT()
         {
-            const int fftLength = 2048;
+            const int fftLength = 2048 * 4;
+            const int m = 11; // log2(2048)
 
             Complex[] fftBuffer = new Complex[fftLength];
             float[] fft = new float[AmountOfBins];
 
-            int localWriteHead;
-
             lock (_bufferLock)
             {
-                localWriteHead = _writeHead;
-
-                int readHead = localWriteHead - fftLength;
+                int readHead = _writeHead - fftLength;
 
                 if (readHead < 0)
                     readHead += CircularFloatBuffer.Length;
 
                 for (int i = 0; i < fftLength; i++)
                 {
-                    int index = (readHead + i) % CircularFloatBuffer.Length;
+                    int index =
+                        (readHead + i) %
+                        CircularFloatBuffer.Length;
 
                     float sample = CircularFloatBuffer[index];
 
-                    sample *= (float)FastFourierTransform.HammingWindow(i, fftLength);
+                    sample *= (float)
+                        FastFourierTransform.HammingWindow(
+                            i,
+                            fftLength);
 
                     fftBuffer[i].X = sample;
                     fftBuffer[i].Y = 0;
                 }
             }
 
-            FastFourierTransform.FFT(true, 11, fftBuffer);
+            FastFourierTransform.FFT(
+                true,
+                m,
+                fftBuffer);
 
             int usefulBins = fftLength / 2;
-            int samplesPerBin = usefulBins / AmountOfBins;
 
-            for (int bin = 0; bin < AmountOfBins; bin++)
+            float sampleRate = DesiredFormat.SampleRate;
+
+            const float minFreq = 20f;
+            float maxFreq = sampleRate / 2f;
+
+            for (int band = 0; band < AmountOfBins; band++)
             {
-                float max = 0;
+                float startFreq =
+                    minFreq *
+                    MathF.Pow(
+                        maxFreq / minFreq,
+                        (float)band / AmountOfBins);
 
-                for (int i = 0; i < samplesPerBin; i++)
+                float endFreq =
+                    minFreq *
+                    MathF.Pow(
+                        maxFreq / minFreq,
+                        (float)(band + 1) / AmountOfBins);
+
+                int startIndex =
+                    (int)(startFreq * fftLength / sampleRate);
+
+                int endIndex =
+                    (int)(endFreq * fftLength / sampleRate);
+
+                startIndex = Math.Clamp(
+                    startIndex,
+                    0,
+                    usefulBins - 1);
+
+                endIndex = Math.Clamp(
+                    endIndex,
+                    startIndex + 1,
+                    usefulBins);
+
+                float maxMagnitude = 0f;
+
+                for (int i = startIndex; i < endIndex; i++)
                 {
-                    int fftIndex = bin * samplesPerBin + i;
-
                     float magnitude =
                         MathF.Sqrt(
-                            fftBuffer[fftIndex].X * fftBuffer[fftIndex].X +
-                            fftBuffer[fftIndex].Y * fftBuffer[fftIndex].Y);
+                            fftBuffer[i].X * fftBuffer[i].X +
+                            fftBuffer[i].Y * fftBuffer[i].Y);
 
-                    if (magnitude > max)
-                        max = magnitude;
+                    if (magnitude > maxMagnitude)
+                        maxMagnitude = magnitude;
                 }
 
-                fft[bin] = max;
+                // Convert to dB
+                float db =
+                    20f *
+                    MathF.Log10(
+                        maxMagnitude + 0.0000000001f);
+
+                // Normalize from -80 dB..0 dB to 0..1
+                db = (db + 80f) / 80f;
+
+                fft[band] =
+                    Math.Clamp(
+                        db,
+                        0f,
+                        1f);
             }
 
             return fft;
