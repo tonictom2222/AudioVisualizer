@@ -5,7 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Visualizer"
         mc:Ignorable="d"
-        Title="Visualizer" Height="450" Width="1800">
+        Title="Visualizer" Height="600" Width="450"
+        WindowStartupLocation="CenterOwner"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown"   
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True">
     <Grid>
         <!--<Canvas>
             <Rectangle Fill="Blue" Width="10" Height="100" Canvas.Left="30" Canvas.Top="10"></Rectangle>
@@ -13,9 +19,9 @@
             <Rectangle Fill="Blue" Width="10" Height="10"></Rectangle>
 
         </Canvas>-->
-        <DockPanel x:Name="DockPanelEl" Background="Black">
+        <DockPanel x:Name="DockPanelEl" Background="Transparent">
             <!--<TextBlock DockPanel.Dock="Top" Text="{Binding Path=time, Mode=TwoWay}"></TextBlock>-->
-            <Grid DockPanel.Dock="Top">
+            <Grid DockPanel.Dock="Bottom">
                 <TextBlock x:Name="TIMER" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"></TextBlock>
                 <TextBlock x:Name="DebugText" Foreground="White" HorizontalAlignment="Center"></TextBlock>
                 <Rectangle x:Name="AlertDot" Fill="Red" Width="20" Height="20" Margin="10" HorizontalAlignment="Right" VerticalAlignment="Center"></Rectangle>

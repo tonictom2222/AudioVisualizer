@@ -1,17 +1,9 @@
-﻿using AudioVisualizer.AudioAnalyzerV2;
-using AudioVisualizer.AudioAnalyzerV3Chatgpt;
-using System.Drawing;
+﻿using AudioVisualizer.AudioAnalyzerV3Chatgpt;
 using System.Globalization;
-using System.Runtime.ConstrainedExecution;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 namespace Visualizer
@@ -27,7 +19,7 @@ namespace Visualizer
         public int Magnification { get; set; } = 800;
         int oneBlockWidth => (int)Math.Round(ActualWidth / (analyzer.AmountOfBins - 6));//CHANGE THIS FOR ZOOM
         Canvas canvasEL;
-        List <System.Windows.Shapes.Rectangle> sparkles = new List<System.Windows.Shapes.Rectangle>();
+        List<System.Windows.Shapes.Rectangle> sparkles = new List<System.Windows.Shapes.Rectangle>();
         List<System.Windows.Shapes.Rectangle> visualizerRectangles = new List<System.Windows.Shapes.Rectangle>();
 
         List<System.Windows.Shapes.Rectangle> decayRectangles = new List<System.Windows.Shapes.Rectangle>();
@@ -56,7 +48,7 @@ namespace Visualizer
 
             canvasEL.Children.Add(BezierCurve);
 
-            analyzer.Start();            
+            analyzer.Start();
             for (int i = 0; i < analyzer.AmountOfBins - 6; i++)//CHANGE THIS FOR ZOOM
             {
                 //TextBlock tx = new TextBlock();
@@ -73,7 +65,7 @@ namespace Visualizer
                 System.Windows.Shapes.Rectangle rcDecay = new System.Windows.Shapes.Rectangle();
                 rcDecay.Width = oneBlockWidth;
                 rcDecay.Height = 10;
-                rcDecay.Fill = System.Windows.Media.Brushes.Purple ;
+                rcDecay.Fill = System.Windows.Media.Brushes.Purple;
                 rcDecay.Stroke = System.Windows.Media.Brushes.AliceBlue;
                 Canvas.SetLeft(rcDecay, rcDecay.Width * i);
                 Canvas.SetBottom(rcDecay, 0);
@@ -109,7 +101,7 @@ namespace Visualizer
                         else
                         {
                             Canvas.SetBottom(decayRectangle, ActualHeight - decayRectangle.Height);
-                        }                        
+                        }
                     }
 
 
@@ -140,25 +132,32 @@ namespace Visualizer
                     //}
 
                     //ls.Text = Random.Shared.Next().ToString();
-                    DebugText.Text = ActualWidth.ToString() + " " + oneBlockWidth;    
+                    DebugText.Text = ActualWidth.ToString() + " " + oneBlockWidth;
                 }
-                CalculateDecay();
-                Display();
                 //DebugText.Text = sparkles.Count().ToString();
                 //textblock1.Text = Convert.ToString(analyzer.writeHead);
+
+                //EXPERIMENTAL
+                double precomputeheight = this.Height;
+                this.Height = visualizerRectangles.Max(x => x.ActualHeight) + 80;//set height of window dynamically
+                this.Top = this.Top + precomputeheight - this.Height;//BIT SHAKY INIT??
+
+                CalculateDecay();
+                Display();
                 await Task.Delay(1);
             }
-            
+
         }
 
         int maxDescent = 1;
         int rateOfDescent = 0;
-        public void CalculateDecay(){
+        public void CalculateDecay()
+        {
             if (rateOfDescent == 0)
             {
                 foreach (System.Windows.Shapes.Rectangle rectEl in decayRectangles)
                 {
-                    if (Canvas.GetBottom(rectEl) != 0)  Canvas.SetBottom(rectEl, Canvas.GetBottom(rectEl) - 1);
+                    if (Canvas.GetBottom(rectEl) != 0) Canvas.SetBottom(rectEl, Canvas.GetBottom(rectEl) - 1);
                 }
             }
             if (rateOfDescent >= maxDescent) rateOfDescent = 0; else rateOfDescent++;
@@ -166,7 +165,7 @@ namespace Visualizer
 
         public System.Windows.Media.Brush GetRandomColor()
         {
-            switch (Random.Shared.Next(1,6)) 
+            switch (Random.Shared.Next(1, 6))
             {
                 case 1:
                     return System.Windows.Media.Brushes.Purple;
@@ -207,7 +206,7 @@ namespace Visualizer
                 }
             }
             BezierCurve = MakeBezierPath(decayRectangles.Select(x => new System.Windows.Point(Canvas.GetBottom(x), Canvas.GetLeft(x))).ToArray());
-            BezierCurve.Fill = System.Windows.Media.Brushes.Red;            
+            BezierCurve.Fill = System.Windows.Media.Brushes.Red;
             BezierCurve.Stroke = System.Windows.Media.Brushes.Red;
             BezierCurve.StrokeThickness = 2;
 
@@ -252,7 +251,7 @@ namespace Visualizer
                     DebugText.Text = i.ToString();
                 }
                 await Task.Delay(10);
-            }           
+            }
 
         }
         public void deleteSparkle(object? sender, EventArgs e)
@@ -296,6 +295,11 @@ namespace Visualizer
 
             return path;
         }
+
+        private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            DragMove();
+        }
     }
 
     public class Sparkle
@@ -310,6 +314,5 @@ namespace Visualizer
         //    rc.Width = width;
         //    decayTime += expired;
         //}        
-        
     }
 }
